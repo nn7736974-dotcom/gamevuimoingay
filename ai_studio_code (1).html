@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài Xỉu Pro - Admin Control System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: radial-gradient(circle, #1a1c2c 0%, #0a0b14 100%); font-family: 'Goldman', sans-serif; height: 100vh; color: white; overflow: hidden; }
+        .glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Jackpot Animation */
+        .jackpot-text { background: linear-gradient(to bottom, #fffb00, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5)); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        /* Dice Styles */
+        .dice-container { border: 8px solid #d4af37; border-radius: 50%; width: 220px; height: 220px; box-shadow: inset 0 0 50px #000, 0 0 30px #d4af37; }
+        .shaking { animation: shake 0.2s infinite; }
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(2px, -2px); } }
+        
+        .dice { width: 50px; height: 50px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #333; margin: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+        /* Chat Window */
+        #chat-box::-webkit-scrollbar { width: 5px; }
+        #chat-box::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        /* Admin Panel */
+        #admin-panel { display: none; position: fixed; top: 20px; left: 20px; z-index: 1000; width: 250px; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center">
+
+    <!-- BẢNG ĐIỀU KHIỂN ADMIN (ẨN) -->
+    <div id="admin-panel" class="glass p-4 rounded-xl border-red-500 border-2">
+        <h3 class="text-red-500 font-bold mb-3"><i class="fas fa-user-shield"></i> ADMIN CONTROL</h3>
+        <p class="text-[10px] text-gray-400 mb-2 font-mono">Trạng thái: <span id="admin-status" class="text-green-500">RANDOM</span></p>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="setResult('Tai')" class="bg-red-900/50 hover:bg-red-600 p-2 rounded text-xs">ÉP TÀI</button>
+            <button onclick="setResult('Xiu')" class="bg-blue-900/50 hover:bg-blue-600 p-2 rounded text-xs">ÉP XỈU</button>
+            <button onclick="setResult('Random')" class="bg-gray-700 hover:bg-gray-500 p-2 rounded text-xs col-span-2">RESET RANDOM</button>
+        </div>
+        <div class="mt-4 border-t border-gray-700 pt-2">
+            <label class="text-[10px]">Cộng tiền Admin:</label>
+            <button onclick="addMoney(10000000)" class="w-full bg-yellow-600 text-black font-bold text-xs py-1 rounded mt-1">+10.000.000</button>
+        </div>
+    </div>
+
+    <!-- NỔ HŨ (JACKPOT) -->
+    <div class="mb-10 text-center">
+        <p class="text-xs text-gray-400 tracking-[0.5em] uppercase">Hũ Rồng Vàng</p>
+        <h1 id="jackpot-amount" class="text-5xl font-black jackpot-text">1,500,245,000</h1>
+    </div>
+
+    <!-- KHU VỰC CHƠI GAME -->
+    <div class="flex items-center gap-10 md:gap-20">
+        <!-- Nút Tài -->
+        <div class="text-center">
+            <button onclick="bet('Tai')" id="btn-tai" class="w-44 h-44 rounded-3xl border-4 border-red-600/30 bg-gradient-to-b from-red-500 to-red-900 flex flex-col items-center justify-center hover:scale-105 transition shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                <span class="text-5xl font-black">TÀI</span>
+                <span class="text-sm opacity-70">11 - 17</span>
+            </button>
+            <div class="mt-3 bg-black/60 rounded-full px-4 py-1 text-yellow-400 font-bold border border-yellow-500/30">
+                $<span id="bet-tai-val">0</span>
+            </div>
+        </div>
+
+        <!-- Bát Xóc -->
+        <div class="relative">
+            <div id="bowl" class="dice-container flex flex-col items-center justify-center bg-[#151726]">
+                <div id="dice-area" class="flex">
+                    <div class="dice">⚂</div>
+                    <div class="dice">⚃</div>
+                    <div class="dice">⚄</div>
+                </div>
+                <div id="timer" class="text-5xl font-bold text-yellow-400 mt-4 tracking-tighter">30</div>
+            </div>
+            <!-- Nút mở Admin Panel nhanh -->
+            <button onclick="toggleAdmin()" class="absolute -top-5 -right-5 w-8 h-8 opacity-10 hover:opacity-100 bg-red-600 rounded-full text-[10px]">AD</button>
+        </div>
+
+        <!-- Nút Xỉu -->
+        <div class="text-center">
+            <button onclick="bet('Xiu')" id="btn-xiu" class="w-44 h-44 rounded-3xl border-4 border-blue-600/30 bg-gradient-to-b from-blue-500 to-blue-900 flex flex-col items-center justify-center hover:scale-105 transition shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                <span class="text-5xl font-black">XỈU</span>
+                <span class="text-sm opacity-70">3 - 10</span>
+            </button>
+            <div class="mt-3 bg-black/60 rounded-full px-4 py-1 text-yellow-400 font-bold border border-yellow-500/30">
+                $<span id="bet-xiu-val">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHỌN TIỀN CƯỢC -->
+    <div class="mt-12 flex gap-3 glass p-3 rounded-full">
+        <button onclick="setAmount(100000)" class="hover:bg-yellow-500 hover:text-black px-5 py-2 rounded-full font-bold transition">100K</button>
+        <button onclick="setAmount(500000)" class="hover:bg-yellow-500 hover:text-black px-5 py-2 rounded-full font-bold transition">500K</button>
+        <button onclick="setAmount(1000000)" class="hover:bg-yellow-500 hover:text-black px-5 py-2 rounded-full font-bold transition">1M</button>
+        <button onclick="setAmount(10000000)" class="hover:bg-yellow-500 hover:text-black px-5 py-2 rounded-full font-bold transition">10M</button>
+        <button onclick="setAmount('all')" class="bg-yellow-600 text-black px-6 py-2 rounded-full font-bold uppercase">Tất tay</button>
+    </div>
+
+    <!-- CHAT THẾ GIỚI -->
+    <div class="fixed right-5 bottom-5 w-72 h-96 glass rounded-2xl flex flex-col overflow-hidden border-blue-500/30 border">
+        <div class="bg-blue-600/20 p-3 font-bold border-b border-blue-500/20 flex items-center justify-between">
+            <span><i class="fas fa-comments mr-2"></i> CHAT THẾ GIỚI</span>
+            <span class="text-[10px] bg-green-500 text-black px-2 rounded-full">1,205 Online</span>
+        </div>
+        <div id="chat-box" class="flex-1 p-3 space-y-3 overflow-y-auto text-sm font-light">
+            <div class="text-gray-400 italic text-[10px] text-center">Chào mừng bạn đến với sòng bài quốc tế!</div>
+        </div>
+        <div class="p-2 bg-black/40 flex gap-2">
+            <input id="chat-input" type="text" placeholder="Nhập nội dung..." class="flex-1 bg-gray-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+            <button onclick="sendMessage()" class="bg-blue-600 px-3 py-2 rounded-lg text-xs"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- THÔNG TIN NGƯỜI CHƠI -->
+    <div class="fixed top-5 left-5 glass p-3 rounded-xl border-yellow-500/50 border flex items-center gap-4">
+        <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-black font-black">AD</div>
+        <div>
+            <p class="text-[10px] text-gray-400 uppercase">Số dư tài khoản</p>
+            <p class="text-yellow-500 font-bold">$<span id="balance">100,000,000</span></p>
+        </div>
+    </div>
+
+    <script>
+        let balance = 100000000;
+        let jackpot = 1500245000;
+        let currentBet = 0;
+        let betSide = null;
+        let timer = 30;
+        let adminControl = "Random"; // Ép kết quả
+        let isProcessing = false;
+        const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        // ADMIN FUNCTIONS
+        function toggleAdmin() {
+            const panel = document.getElementById('admin-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function setResult(side) {
+            adminControl = side;
+            document.getElementById('admin-status').innerText = side.toUpperCase();
+            document.getElementById('admin-status').className = side === 'Tai' ? 'text-red-500' : (side === 'Xiu' ? 'text-blue-500' : 'text-green-500');
+        }
+
+        function addMoney(amount) {
+            balance += amount;
+            updateUI();
+        }
+
+        // GAME FUNCTIONS
+        function setAmount(amt) {
+            if(amt === 'all') currentBet = balance;
+            else currentBet = amt;
+            // Hiệu ứng feedback
+        }
+
+        function bet(side) {
+            if(isProcessing || timer < 5) return;
+            if(currentBet <= 0) return alert("Vui lòng chọn tiền cược!");
+            if(currentBet > balance) return alert("Số dư không đủ!");
+
+            betSide = side;
+            document.getElementById(`bet-${side.toLowerCase()}-val`).innerText = currentBet.toLocaleString();
+            alert(`Bạn đã đặt ${currentBet.toLocaleString()} vào ${side}`);
+        }
+
+        // Vòng lặp đếm ngược
+        setInterval(() => {
+            if(isProcessing) return;
+            timer--;
+            document.getElementById('timer').innerText = timer;
+
+            // Tăng hũ nhẹ nhàng
+            jackpot += Math.floor(Math.random() * 10000);
+            document.getElementById('jackpot-amount').innerText = jackpot.toLocaleString();
+
+            if(timer <= 5) document.getElementById('bowl').classList.add('shaking');
+            if(timer <= 0) finishRound();
+        }, 1000);
+
+        function finishRound() {
+            isProcessing = true;
+            document.getElementById('bowl').classList.remove('shaking');
+
+            let d1, d2, d3, total, result;
+
+            // XỬ LÝ LOGIC ADMIN TẠI ĐÂY
+            if (adminControl === 'Tai') {
+                d1 = 4; d2 = 5; d3 = 6; // Tổng 15 (Tài)
+            } else if (adminControl === 'Xiu') {
+                d1 = 1; d2 = 2; d3 = 1; // Tổng 4 (Xỉu)
+            } else {
+                d1 = Math.floor(Math.random() * 6) + 1;
+                d2 = Math.floor(Math.random() * 6) + 1;
+                d3 = Math.floor(Math.random() * 6) + 1;
+            }
+
+            total = d1 + d2 + d3;
+            result = total >= 11 ? 'Tai' : 'Xiu';
+
+            // Hiển thị xúc xắc
+            document.getElementById('dice-area').innerHTML = `
+                <div class="dice">${diceIcons[d1-1]}</div>
+                <div class="dice">${diceIcons[d2-1]}</div>
+                <div class="dice">${diceIcons[d3-1]}</div>
+            `;
+
+            // Xử lý tiền
+            if(betSide === result) {
+                balance += currentBet; // Thắng x2 (hoặc x1.95 tùy bạn)
+                sendMessage("Hệ thống", `Chúc mừng người chơi đã thắng ${(currentBet*2).toLocaleString()}!`, "text-yellow-500");
+            } else if(betSide !== null) {
+                balance -= currentBet;
+            }
+
+            updateUI();
+            
+            // Reset ván mới sau 5 giây
+            setTimeout(() => {
+                timer = 30;
+                betSide = null;
+                currentBet = 0;
+                isProcessing = false;
+                document.getElementById('bet-tai-val').innerText = "0";
+                document.getElementById('bet-xiu-val').innerText = "0";
+                document.getElementById('dice-area').innerHTML = '<div class="dice">?</div><div class="dice">?</div><div class="dice">?</div>';
+            }, 5000);
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = balance.toLocaleString();
+        }
+
+        // CHAT FUNCTIONS
+        const mockNames = ["Sát Thủ", "Đại Gia", "Tài Xỉu Chủ", "Vua Cờ Bạc", "Lão Hạc"];
+        const mockMessages = ["Cầu bệt rồi anh em ơi!", "Xỉu đi, xỉu đi!", "Vừa cháy túi rồi...", "Admin ơi cho em xin lộc", "Tất tay Tài thôi!"];
+
+        function sendMessage(user = "Bạn", msg = null, color = "text-white") {
+            const chatBox = document.getElementById('chat-box');
+            const input = document.getElementById('chat-input');
+            const message = msg || input.value;
+            
+            if(!message) return;
+
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="font-bold ${color}">${user}:</span> <span class="text-gray-300">${message}</span>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            if(!msg) input.value = "";
+        }
+
+        // Tự động chat giả lập cho vui nhộn
+        setInterval(() => {
+            const name = mockNames[Math.floor(Math.random() * mockNames.length)];
+            const msg = mockMessages[Math.floor(Math.random() * mockMessages.length)];
+            sendMessage(name, msg);
+        }, 8000);
+
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendMessage();
+        });
+
+    </script>
+</body>
+</html>
